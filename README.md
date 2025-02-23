@@ -1,9 +1,3 @@
----
-title: "Biostatistics Project: Randomized Phase III Study of Panitumumab with FOLFOX4 for First-Line Treatment of Metastatic Colorectal Cancer"
-author: "Authors: Lucia Maninetti, Arianna Rigamonti, Michele Sala, Jacopo Tettamanti"
-output: html_document
----
-
 # Biostatistics Project: Randomized Phase III Study of Panitumumab with FOLFOX4 for First-Line Treatment of Metastatic Colorectal Cancer
 
 **Authors:** Lucia Maninetti, Arianna Rigamonti, Michele Sala, Jacopo Tettamanti
