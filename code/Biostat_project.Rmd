@@ -1,0 +1,736 @@
+---
+title: "Biostatistics project: Randomized phase III study of panitumumab with FOLFOX4 for first-line treatment of metastatic colorectal cancer"
+author: "Authors: Lucia Maninetti, Arianna Rigamonti, Michele Sala, Jacopo Tettamanti"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# ABSTRACT
+
+*Purpose.*
+Panitumumab, a fully human anti–epidermal growth factor receptor (EGFR) monoclonal antibody that improves progression-free survival (PFS), is approved as monotherapy for patients with chemotherapy- refractory metastatic colorectal cancer (mCRC). The Panitumumab Randomized Trial in Combination With Chemotherapy for Metastatic Colorectal Cancer to Determine Efficacy (PRIME) was designed to evaluate the efficacy and safety of panitumumab plus infusional fluorouracil, leucovorin, and oxaliplatin (FOLFOX4) versus FOLFOX4 alone as initial treatment for mCRC.
+
+*Patients and Methods.*
+In this multicenter, phase III trial, patients with no prior chemotherapy for mCRC, Eastern Cooperative Oncology Group performance status of 0 to 2, and available tissue for biomarker testing were randomly assigned 1:1 to receive panitumumab-FOLFOX4 versus FOLFOX4. The primary end point was PFS; overall survival (OS) was a secondary end point. Results were prospectively analyzed on an intent-to-treat basis by tumor KRAS status.
+
+*Results.*
+KRAS results were available for 93% of the 1,183 patients randomly assigned. In the wild-type (WT) KRAS stratum, panitumumab-FOLFOX4 significantly improved PFS compared with FOLFOX4 (median PFS, 9.6 v 8.0 months, respectively; hazard ratio [HR], 0.80; 95% CI, 0.66 to 0.97; P 0.02). A nonsignificant increase in OS was also observed for panitumumab-FOLFOX4 versus FOLFOX4 (median OS, 23.9 v 19.7 months, respectively; HR, 0.83; 95% CI, 0.67 to 1.02; P 0.072). In the mutant KRAS stratum, PFS was significantly reduced in the panitumumab-FOLFOX4 arm versus the FOLFOX4 arm (HR, 1.29; 95% CI, 1.04 to 1.62; P 0.02), and median OS was 15.5 months versus 19.3 months, respectively (HR, 1.24; 95% CI, 0.98 to 1.57; P 0.068). Adverse event rates were generally comparable across arms with the exception of toxicities known to be associated with anti-EGFR therapy.
+
+*Conclusion.* This study demonstrated that panitumumab-FOLFOX4 was well tolerated and significantly improved PFS in patients with WT KRAS tumors and underscores the importance of KRAS testing for patients with mCRC.
+
+# INTRODUCTION
+
+Colorectal cancer (CRC) is the third most common cancer among men and women in the United States. Worldwide, there are more than one million new cases of CRC each year. On the basis of its role in the pathogenesis of CRC, the epidermal growth factor receptor (EGFR) has proven to be a clinically meaningful target for monoclonal antibodies (mAbs) with efficacy established in all lines of treatment of metastatic CRC (mCRC). Panitumumab is a fully human mAb targeting the EGFR. Retrospectively analyzed studies identified KRAS mutation in tumors as a negative predictive factor for panitumumab and cetuximab for improved response rate (RR), progression-free survival (PFS), and overall survival (OS). In September 2007, a prospectively defined, retrospective analysis of the pivotal phase III study of panitumumab as monotherapy in the mCRC setting provided evidence that clinical benefit was specific to patients with wild-type (WT) KRAS tumors. The Panitumumab Randomized Trial in Combination With Chemotherapy for Metastatic Colorectal Cancer to Determine Efficacy (PRIME) is an open-label, randomized, multicenter, phase III trial prospectively investigating panitumumab plus infusional fluorouracil, leucovorin, and oxaliplatin (FOLFOX4) versus FOLFOX4 alone as first-line treatment for mCRC in patients with WT KRAS tumors. Originally designed to compare the treatment effect in all randomly assigned patients, the trial was amended to focus on prospective hypothesis testing in the WT KRAS stratum.
+
+# PATIENTS AND METHODS 
+
+*Study Design and Treatment Schedule.*
+This is an open-label, multicenter, phase III trial that compared the efficacy of panitumumab-FOLFOX4 with FOLFOX4 alone in patients with previously untreated mCRC according to tumor KRAS status. Patients were randomly assigned 1:1 to receive either panitumumab-FOLFOX4 or FOLFOX4. Panitumumab was administered intravenously (IV) every 2 weeks on day 1 before FOLFOX4 chemotherapy.FOLFOX4 was administered every 2 weeks. Treatment was administered until progression or unacceptable toxicity.
+Objective tumor response was evaluated by blinded central radiology review using modified Response Evaluation Criteria in Solid Tumors (RECIST) in all patients with baseline measurable disease per central review. Patients were evaluated every 8 weeks until progression. Responses were confirmed at least 4 weeks later. Patients were observed for safety 30 days after the last study drug administration and for survival every 3 months. Adverse events (AEs) were graded using the Common Terminology Criteria for Adverse Events (version 3.0) with modifications for specific skin- and nail-related toxicities. 
+
+# STATISTICS ANALYSIS
+
+### Import Libraries
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(ggpubr)
+library(survival)
+library(survminer)
+library(ggsurvfit)
+library(dplyr)
+library(magrittr)
+library(gridExtra)
+```
+
+### Read the Excel File and all the Sheets
+
+Note: change the path with your own
+
+```{r}
+colon1 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adae_pds2019")
+colon2 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adlb_pds2019")
+colon3 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adls_pds2019")
+colon4 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adpm_pds2019")
+colon5 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adrsp_pds2019")
+colon6 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet = "adsl_pds2019")
+colon7 <- read_excel("/Users/ariannarigamonti/Desktop/colon.xlsx", sheet ="biomark_pds2019")
+```
+
+### Merge the Interesting Variables in One Final Dataframe
+
+```{r}
+col1_col6_merged <- merge(colon1, colon6, by.x = "SUBJID")
+col1_col6_col7_merged <- merge(col1_col6_merged, colon7, by.x = "SUBJID")
+col6_col7_merged <- merge(colon6, colon7, by.x = "SUBJID")
+
+df_final_pre <- unique(col1_col6_col7_merged)
+
+df_final <- df_final_pre %>%
+  group_by(SUBJID, AEPT) %>%
+  arrange(desc(AESEVCD)) %>%
+  slice(1) %>%
+  ungroup()
+
+df_final1 <- df_final_pre %>%
+  group_by(SUBJID) %>%
+  arrange(desc(AESEVCD)) %>%
+  slice(1) %>%
+  ungroup()
+```
+
+Divide Patients in Mutant (mt) and Wild-Type (wt) for KRAS (Exon 2) Gene 'BMMTR1'
+
+```{r}
+mutant <- subset(col6_col7_merged, BMMTR1 == "Mutant" | BMMTR2 == "Mutant" | BMMTR3 == "Mutant" | BMMTR4 == "Mutant" |
+                   BMMTR5 == "Mutant" | BMMTR6 == "Mutant" | BMMTR7 == "Mutant" | BMMTR15 == "Mutant" | BMMTR16 == "Mutant")
+
+wild_type <- subset(col6_col7_merged, 
+                    BMMTR1 == "Wild-type" & 
+                      BMMTR2 == "Wild-type" & 
+                      BMMTR3 == "Wild-type" & 
+                      BMMTR4 == "Wild-type" &
+                      BMMTR5 == "Wild-type" & 
+                      BMMTR6 == "Wild-type" & 
+                      BMMTR7 == "Wild-type" & 
+                      BMMTR15 == "Wild-type" & 
+                      BMMTR16 == "Wild-type")
+```
+
+Divide patients based on AE grade (1-2 and 3-4)
+
+```{r}
+skin_ae <- subset(df_final1, AESOC == "Skin and subcutaneous tissue disorders")
+df_grade_1_2 <- skin_ae[skin_ae$AESEVCD %in% c(1, 2), ]
+df_grade_3_4 <- skin_ae[skin_ae$AESEVCD %in% c(3, 4), ]
+```
+
+## DESCRIPTIVE STATISTICS
+
+Frequencies Barplot of MT and WT Patients
+
+```{r}
+
+mutant1 <- mutant
+mutant1$BMMTR = "Mutant"
+
+wild_type1 <- wild_type
+wild_type1$BMMTR = "Wild-type"
+
+df_mt_wt <- rbind(mutant1, wild_type1)
+
+df_final1 <- merge(df_final1, df_mt_wt[, c("SUBJID", "BMMTR")], by = "SUBJID", all.x = TRUE)
+
+freq_mt_wt <- table(df_mt_wt$BMMTR)
+
+barplot(freq_mt_wt, 
+        main = "KRAS type",
+        ylab = "Frequency",
+        col = c("salmon", "yellowgreen"),
+        ylim = c(0,500))
+
+# Creare un grafico a barre con ggplot2
+ggplot(df_mt_wt, aes(x = BMMTR, fill = BMMTR)) +
+  geom_bar() +
+  labs(title = "KRAS Type", x = "KRAS Type", y = "Frequency") +
+  scale_fill_manual(values = c("salmon", "yellowgreen")) +
+  theme_minimal()
+
+# Calcolare le percentuali
+df_mt_wt_percent <- df_mt_wt %>%
+  count(BMMTR) %>%
+  mutate(Percent = n / sum(n) * 100)
+
+# Creare un grafico a barre in percentuale con ggplot2
+ggplot(df_mt_wt_percent, aes(x = BMMTR, y = Percent, fill = BMMTR)) +
+  geom_bar(stat = "identity") +
+  labs(title = "KRAS Type distribution", x = "KRAS Type", y = "Percentage") +
+  scale_fill_manual(values = c("salmon", "yellowgreen")) +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Percent, 1), "%")), vjust = -0.5) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+Adverse events
+```{r}
+# Adverse events on all patients (regarless the therapy)
+freq_AESOC <- round(((table(df_final$AESOC)) / nrow(df_final)) * 100, 1)
+# Crea un dataframe con le frequenze percentuali
+df_pie <- data.frame(categories = names(freq_AESOC), frequencies = freq_AESOC)
+# Crea la pie chart con ggplot2
+ggplot(df_pie, aes(x = "", y = freq_AESOC, fill = categories)) +
+geom_bar(stat = "identity", width = 1) +
+coord_polar("y", start = 0) +  # Imposta il tipo di coordinate su polare
+labs(title = "Therapy Adverse Events Categories", 
+    fill = "Categories", 
+    x = NULL, 
+    y = "Percentage") +  # Rimuovi l'etichetta dell'asse x
+theme_minimal() +  # Stile del tema
+scale_fill_manual(values = rainbow(length(freq_AESOC)))  # Imposta i colori manualmente
+
+# Adverse events based on the therapy
+
+# FOLFOX4 alone
+folfox <- subset(df_final, TRT == "FOLFOX alone")
+freq_AESOC_folfox <- round(((table(folfox$AESOC)) / nrow(folfox)) * 100, 1)
+# Crea un dataframe con le frequenze percentuali
+df_pie_folfox <- data.frame(categories = names(freq_AESOC_folfox), frequencies = freq_AESOC_folfox)
+# Crea la pie chart con ggplot2
+ggplot(df_pie_folfox, aes(x = "", y = freq_AESOC_folfox, fill = categories)) +
+geom_bar(stat = "identity", width = 1) +
+coord_polar("y", start = 0) +  # Imposta il tipo di coordinate su polare
+labs(title = "Folfox Adverse Events", 
+    fill = "Categories", 
+    x = NULL, 
+    y = "Percentage") +  # Rimuovi l'etichetta dell'asse x
+theme_minimal() +  # Stile del tema
+scale_fill_manual(values = rainbow(length(freq_AESOC_folfox)))  # Imposta i colori manualmente
+
+# FOLFOX4 alone
+folfox_panitumumab <- subset(df_final, TRT == "Panitumumab + FOLFOX")
+freq_AESOC_folfox_panitumumab <- round(((table(folfox_panitumumab$AESOC)) / nrow(folfox_panitumumab)) * 100, 1)
+# Crea un dataframe con le frequenze percentuali
+df_pie_folfox_panitumumab <- data.frame(categories = names(freq_AESOC_folfox_panitumumab), frequencies = freq_AESOC_folfox_panitumumab)
+
+# Crea la pie chart con ggplot2
+ggplot(df_pie_folfox_panitumumab, aes(x = "", y = freq_AESOC_folfox_panitumumab, fill = categories)) +
+geom_bar(stat = "identity", width = 1) +
+coord_polar("y", start = 0) +  # Imposta il tipo di coordinate su polare
+labs(title = "Folfox + Panitumumab Adverse Events", 
+    fill = "Categories", 
+    x = NULL, 
+    y = "Percentage") +  # Rimuovi l'etichetta dell'asse x
+theme_minimal() +  # Stile del tema
+scale_fill_manual(values = rainbow(length(freq_AESOC_folfox_panitumumab)))  # Imposta i colori manualmente
+
+```
+
+Frequencies Barplot of Adverse Events Grade
+
+```{r}
+freq_AESEVCD <- table(df_final$AESEVCD)
+
+df_bar <- data.frame(Grade = as.numeric(names(freq_AESEVCD)), Frequency = freq_AESEVCD)
+# Crea il barplot con ggplot2
+ggplot(df_bar, aes(x = factor(Grade), y = freq_AESEVCD, fill = factor(Grade))) +
+geom_bar(stat = "identity") +
+labs(title = "Adverse Events Grade Distribution", 
+    x = "Grade (1-4)", 
+    y = "Frequency") +
+scale_fill_manual(name = 'Grade', values = c("chartreuse1", "yellow", "orange", "red")) +  # Colori delle barre
+ylim(0, 1000) +  # Imposta i limiti sull'asse y
+theme_minimal() +
+theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+
+```
+
+## SURVIVAL ANALYSIS
+
+The primary objective of this study was to assess the treatment effect of the addition of panitumumab to FOLFOX4 on PFS as initial therapy for mCRC in patients with WT KRAS tumors and also in patients with MT KRAS tumors. The study was amended to compare PFS (primary end point) with OS (secondary end point) according to KRAS status before any efficacy analyses were carried out.
+
+Treatment effects on PFS and OS were estimated using stratified Cox proportional hazards models and the Kaplan–Meier method. An exact 95% confidence interval (CI) was estimated for a stratified odds ratio for objective response rate (ORR). The randomization stratification factors were used for the stratified analyses.
+
+```{r}
+# Calcolare la mediana del tempo di sopravvivenza per tutti i pazienti (PFS)
+fit_pfs <- survfit(Surv(PFSDYCR, PFSCR) ~ TRT, data = df_mt_wt)
+summary(fit_pfs)$table
+median_pfs <- summary(fit_pfs)$table
+# Convertire la mediana da giorni a mesi
+median_pfs_months <- round(median_pfs[,"median"] / 30.44, 1)
+
+# Calcolare la mediana del tempo di sopravvivenza per tutti i pazienti (OS)
+fit_os <- survfit(Surv(DTHDY, DTH) ~ TRT, data = df_mt_wt)
+median_os <- summary(fit_os)$table
+summary(fit_os)$table
+# Convertire la mediana da giorni a mesi
+median_os_months <- round(median_os[,"median"] / 30.44, 1)
+
+# Eseguire il log-rank test per PFS
+survdiff_pfs <- survdiff(Surv(PFSDYCR, PFSCR) ~ TRT, data = df_mt_wt)
+print(survdiff_pfs)
+
+# Eseguire il log-rank test per OS
+survdiff_os <- survdiff(Surv(DTHDY, DTH) ~ TRT, data = df_mt_wt)
+print(survdiff_os)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit per PFS
+p1 <- ggsurvplot(fit_pfs, data = df_mt_wt, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC PFS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Progression Free Survival (PFS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4", "Panitumumab + FOLFOX4"),
+           legend.title = "Treatment")
+
+# Aggiungi la mediana al plot PFS
+p1$plot <- p1$plot + 
+  geom_vline(xintercept = median_pfs[,"median"], linetype = "dashed", color = "red")
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit per OS
+p2 <- ggsurvplot(fit_os, data = df_mt_wt, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC OS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Overall Survival (OS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4", "Panitumumab + FOLFOX4"),
+           legend.title = "Treatment")
+
+# Aggiungi la mediana al plot OS
+p2$plot <- p2$plot + 
+  geom_vline(xintercept = median_os[,"median"], linetype = "dashed", color = "red")
+
+# Creare una tabella con le mediane di sopravvivenza in mesi
+median_table <- data.frame(
+  Treatment = rep(c("FOLFOX4", "Panitumumab + FOLFOX4"), 2),
+  Survival_Type = c("PFS", "PFS", "OS", "OS"),
+  Median_Survival_Months = c(median_pfs_months, median_os_months)
+)
+
+# Creare un grafico della tabella delle mediane
+table_plot <- tableGrob(median_table, rows = NULL)
+
+# Disporre i plot in un unico layout con la tabella a lato
+grid.arrange(p1$plot, p2$plot, table_plot, ncol = 1, nrow = 3, heights = c(2, 2, 1))
+```
+
+```{r}
+# Creare la curva di sopravvivenza di Kaplan-Meier per PFS (wild-type)
+fit_pfs <- survfit(Surv(PFSDYCR, PFSCR) ~ TRT, data = wild_type1)
+summary(fit_pfs)$table
+median_pfs <- summary(fit_pfs)$table
+median_pfs
+median_pfs_months <- round(median_pfs[,"median"] / 30.44, 1)
+median_pfs_months
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p1 <- ggsurvplot(fit_pfs, data = wild_type1, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC KRAS WT PFS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Progression Free Survival (PFS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4", "Panitumumab + FOLFOX4"),
+           legend.title = "Treatment") 
+
+# Aggiungi la mediana al plot PFS
+p1$plot <- p1$plot + 
+  geom_vline(xintercept = median_pfs[,"median"], linetype = "dashed", color = "red")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per PFS (mutant)
+fit_pfs_mutant <- survfit(Surv(PFSDYCR, PFSCR) ~ TRT, data = mutant1)
+median_pfs_mutant <- summary(fit_pfs_mutant)$table
+median_pfs_mutant_months <- round(median_pfs_mutant[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p2 <- ggsurvplot(fit_pfs_mutant, data = mutant1, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC KRAS MT PFS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Progression Free Survival (PFS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4","Panitumumab + FOLFOX4"),
+           legend.title = "Treatment")
+
+# Aggiungi la mediana al plot OS
+p2$plot <- p2$plot + 
+  geom_vline(xintercept = median_pfs_mutant[,"median"], linetype = "dashed", color = "red")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per OS (wild-type)
+fit_os <- survfit(Surv(DTHDY, DTH) ~ TRT, data = wild_type1)
+median_os <- summary(fit_os)$table
+median_os_months <- round(median_os[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p3 <- ggsurvplot(fit_os, data = wild_type1, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC KRAS WT OS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Overall Survival (OS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4", "Panitumumab + FOLFOX4"),
+           legend.title = "Treatment")
+
+# Aggiungi la mediana al plot OS
+p3$plot <- p3$plot + 
+  geom_vline(xintercept = median_os[,"median"], linetype = "dashed", color = "red")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per OS (mutant)
+fit_os_mutant <- survfit(Surv(DTHDY, DTH) ~ TRT, data = mutant1)
+median_os_mutant <- summary(fit_os_mutant)$table
+median_os_mutant_months <- round(median_os_mutant[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p4 <- ggsurvplot(fit_os_mutant, data = mutant1, pval = TRUE, risk.table = TRUE,
+           title = "Kaplan-Meier Curve for mCRC KRAS MT OS by treatment",
+           xlab = "Follow-up time (days)", ylab = "Overall Survival (OS)",
+           palette = c("blue", "gold2"),
+           conf.int = TRUE,
+           legend.labs = c("FOLFOX4", "Panitumumab + FOLFOX4"),
+           legend.title = "Treatment")
+
+# Aggiungi la mediana al plot OS
+p4$plot <- p4$plot + 
+  geom_vline(xintercept = median_os_mutant[,"median"], linetype = "dashed", color = "red")
+
+# Creare una tabella con le mediane di sopravvivenza
+median_table <- data.frame(
+  Treatment = rep(c("FOLFOX4", "Panitumumab + FOLFOX4"), 4),
+  Survival_Type = c("PFS-WT", "PFS-WT", "PFS-MT", "PFS-MT", "OS-WT", "OS-WT", "OS-MT", "OS-MT"),
+  Median_Survival_Months = c(median_pfs_months, median_pfs_mutant_months, median_os_months, median_os_mutant_months)
+)
+
+# Creare un grafico della tabella delle mediane
+table_plot <- tableGrob(median_table, rows = NULL)
+
+# Disporre i plot in un unico layout
+grid.arrange(p1$plot, p2$plot, p3$plot, p4$plot, ncol = 2, nrow = 2)
+grid.arrange(table_plot, ncol=1, nrow = 1)
+```
+
+Skin toxicity was defined as any treatment-emergent adverse event indicative of a skin disorder, representing a composite category of adverse event terms including but not limited to rash, dermatitis acneiform, pruritus, dry skin, skin fissures, and erythema. Retrospective post-hoc analyses were carried out to determine the effect of skin toxicity on efficacy end points, in- cluding PFS (by central review) and OS. A stratified Cox proportional hazards model was used to examine the relationship between worst grade skin toxicity severity (grade 2–4: grade 0–1) and PFS/OS. ORR by central review and worst grade skin toxicity was provided.
+
+```{r}
+ # Creare una variabile AE per indicare il grado di AE
+df_final1$AE <- ifelse(df_final1$AESEVCD %in% c(1, 2), "Low", "High")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per PFS in base al grado di AE
+fit_pfs_skin <- survfit(Surv(PFSDYCR, PFSCR) ~ AE, data = df_final1)
+summary(fit_pfs_skin)$table
+median_pfs_skin <- summary(fit_pfs_skin)$table
+median_pfs_months_skin <- round(median_pfs_skin[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p1 <- ggsurvplot(fit_pfs_skin, data = df_final1, pval = TRUE, risk.table = TRUE,
+                 title = "Kaplan-Meier Curve for mCRC PFS by AE grade",
+                 xlab = "Follow-up time (days)", ylab = "Progression Free Survival (PFS)",
+                 palette = c("blue", "gold2"),
+                 conf.int = TRUE,
+                 legend.labs = c("High", "Low"),
+                 legend.title = "Adverse Events Grade") 
+
+# Aggiungi la mediana al plot PFS
+p1$plot <- p1$plot + 
+  geom_vline(xintercept = median_pfs_skin[,"median"], linetype = "dashed", color = "red")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per OS in base al grado di AE
+fit_os_skin <- survfit(Surv(DTHDY, DTH) ~ AE, data = df_final1)
+median_os_skin <- summary(fit_os_skin)$table
+median_os_months_skin <- round(median_os_skin[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p2 <- ggsurvplot(fit_os_skin, data = df_final1, pval = TRUE, risk.table = TRUE,
+                 title = "Kaplan-Meier Curve for mCRC OS by AE grade",
+                 xlab = "Follow-up time (days)", ylab = "Overall Survival (OS)",
+                 palette = c("blue", "gold2"),
+                 conf.int = TRUE,
+                 legend.labs = c("High", "Low"),
+                 legend.title = "Adverse Events Grade")
+
+# Aggiungi la mediana al plot OS
+p2$plot <- p2$plot + 
+  geom_vline(xintercept = median_os_skin[,"median"], linetype = "dashed", color = "red")
+
+# Creare una tabella con le mediane di sopravvivenza
+median_table_skin <- data.frame(
+  AE_Grade = rep(c("High", "Low"), 2),
+  Survival_Type = c("PFS", "PFS", "OS", "OS"),
+  Median_Survival_Months = c(median_pfs_months_skin, median_os_months_skin)
+)
+
+# Creare un grafico della tabella delle mediane
+table_plot <- tableGrob(median_table_skin, rows = NULL)
+
+# Disporre i plot in un unico layout
+grid.arrange(p1$plot, p2$plot, ncol = 1)
+grid.arrange(table_plot, ncol = 1, nrow = 1)
+```
+```{r}
+ # Creare la curva di sopravvivenza di Kaplan-Meier per PFS in base a ECOC
+fit_pfs_ecog <- survfit(Surv(PFSDYCR, PFSCR) ~ B_ECOG, data = df_final1)
+median_pfs_ecog <- summary(fit_pfs_ecog)$table
+median_pfs_months_ecog <- round(median_pfs_ecog[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p1 <- ggsurvplot(fit_pfs_ecog, data = df_final1, pval = TRUE, risk.table = TRUE,
+                 title = "Kaplan-Meier Curve for mCRC PFS by Baseline ECOG",
+                 xlab = "Follow-up time (days)", ylab = "Progression Free Survival (PFS)",
+                 palette = c("blue", "gold2", "olivedrab4"),
+                 conf.int = TRUE,
+                 legend.labs = c("Fully Active", "In bed less than 50% of the time", "Symptoms but ambulatory"),
+                 legend.title = "Baseline ECOG") 
+
+# Aggiungi la mediana al plot PFS
+p1$plot <- p1$plot + 
+  geom_vline(xintercept = median_pfs_ecog[,"median"], linetype = "dashed", color = "red")
+
+# Creare la curva di sopravvivenza di Kaplan-Meier per OS in base a ECOG
+fit_os_ecog <- survfit(Surv(DTHDY, DTH) ~ B_ECOG, data = df_final1)
+median_os_ecog <- summary(fit_os_ecog)$table
+median_os_months_ecog <- round(median_os_ecog[,"median"] / 30.44, 1)
+
+# Visualizzare la curva di sopravvivenza con ggsurvfit
+p2 <- ggsurvplot(fit_os_ecog, data = df_final1, pval = TRUE, risk.table = TRUE,
+                 title = "Kaplan-Meier Curve for mCRC OS by Baseline ECOG",
+                 xlab = "Follow-up time (days)", ylab = "Overall Survival (OS)",
+                 palette = c("blue", "gold2", "olivedrab4"),
+                 conf.int = TRUE,
+                 legend.labs = c("Fully Active", "In bed less than 50% of the time", "Symptoms but ambulatory"),
+                 legend.title = "Baseline ECOG")
+
+# Aggiungi la mediana al plot OS
+p2$plot <- p2$plot + 
+  geom_vline(xintercept = median_os_ecog[,"median"], linetype = "dashed", color = "red")
+
+# Creare una tabella con le mediane di sopravvivenza
+median_table_ecog <- data.frame(
+  ECOG = rep(c("Fully Active", "In bed less than 50% of the time", "Symptoms but ambulatory"), 2),
+  Survival_Type = c("PFS", "PFS","PFS","OS", "OS", "OS"),
+  Median_Survival_Months = c(median_pfs_months_ecog, median_os_months_ecog)
+)
+
+# Creare un grafico della tabella delle mediane
+table_plot <- tableGrob(median_table_ecog, rows = NULL)
+
+# Disporre i plot in un unico layout
+grid.arrange(p1$plot, p2$plot, ncol = 1)
+grid.arrange(table_plot, ncol = 1, nrow = 1)
+```
+
+
+```{r}
+hist(df_final1$AGE, xlab='Age [years]', main='Age distribution', col = "skyblue")
+summary(df_final1$AGE)
+
+df_final1$agecat61 <- cut(df_final1$AGE, breaks=c(0, 55, Inf), labels=c("young", "old"))
+head(df_final1)
+
+fit.age <- survfit(Surv(PFSDYCR, PFSCR) ~ agecat61, data=df_final1)
+print(fit.age)
+
+survfit2(Surv(PFSDYCR, PFSCR) ~ agecat61, data=df_final1) %>%
+  ggsurvfit(linewidth = 1) +
+  add_confidence_interval() + # add confidence interval
+  add_risktable() + # Add risk table
+  add_quantile(y_value = 0.5, color = "gray50", linewidth = 0.75)+  # Specify median survival
+  labs(title = "Kaplan-Meier Curve by age group",
+       x="Follow-up time (days)")+
+  scale_x_continuous(breaks = seq(0,1000,by=90))+
+  scale_color_discrete("Age group")+
+  scale_fill_discrete("Age group")+
+  add_pvalue("annotation",x=500)
+
+```
+
+```{r}
+df_final1$BMI <- with(df_final1, (as.numeric(B_WEIGHT) / as.numeric(B_HEIGHT)^2) * 10000) 
+
+df_final1$BMI_category <- cut(df_final1$BMI, breaks=c(0, 18.5, 30, Inf), labels=c("underweight", "normal weight", "overweight/obese"))
+head(df_final1)
+
+fit.age <- survfit(Surv(PFSDYCR, PFSCR) ~ BMI_category, data=df_final1)
+print(fit.age)
+
+survfit2(Surv(PFSDYCR, PFSCR) ~ BMI_category, data=df_final1) %>%
+  ggsurvfit(linewidth = 1) +
+  add_confidence_interval() + # add confidence interval
+  add_risktable() + # Add risk table
+  add_quantile(y_value = 0.5, color = "gray50", linewidth = 0.75)+  # Specify median survival
+  labs(title = "Kaplan-Meier Curve by BMI group",
+       x="Follow-up time (days)")+
+  scale_x_continuous(breaks = seq(0,1000,by=90))+
+  scale_color_discrete("BMI group")+
+  scale_fill_discrete("BMI group")+
+  add_pvalue("annotation",x=500)
+
+```
+
+```{r}
+# Add variables in a binary form
+df_final1$race <- ifelse(df_final1$RACE %in% "White or Caucasian", "White or Caucasian", "Other")
+
+df_final1$ECOG <- ifelse(df_final1$B_ECOG %in% c("Fully active", "Symptoms but ambulatory"), "0 or 1", "2")
+
+df_final1$Primary_Tumor <- ifelse(df_final1$DIAGTYPE %in% "Colon", "Colon", "Rectal")
+
+df_final1$Number_of_sites <- ifelse(df_final1$B_METANM == "1", "1",
+                             ifelse(df_final1$B_METANM == "2", "2",
+                             ifelse(df_final1$B_METANM >= 3, ">3", as.character(df_final1$B_METANM))))
+
+df_final1$Location_of_site <- ifelse(df_final1$LIVERMET == "Y", "Liver", "Other")
+
+colon2.1 <- subset(colon2, colon2$LBBASE == "Y" & colon2$LBTEST == "Lactate Dehydrogenase")
+
+df_final1 <- merge(df_final1, colon2.1, by.x = "SUBJID" )
+
+df_final1 <- df_final1[, !names(df_final1) %in% c("LBTEST", "LBBASE", "VISITDY", "VISIT", "LBSTUNIT")]
+
+df_final1$Baseline_LDH1 <- ifelse(df_final1$LBSTRESN < 150 * 1.5, "< 1.5 x ULN",
+                             ifelse(df_final1$LBSTRESN >= 150 * 1.5, ">= 1.5 x ULN", "other"))
+
+df_final1$Baseline_LDH2 <- ifelse(df_final1$LBSTRESN < 200 * 2, "< 2 x ULN",
+                             ifelse(df_final1$LBSTRESN >= 200 * 2, ">= 2 x ULN", "other"))
+
+df_final1$Age1 <- ifelse(df_final1$AGE < 65, "<65", ">=65")
+df_final1$Age2 <- ifelse(df_final1$AGE < 75, "<75", ">=75")
+
+```
+
+
+```{r}
+# Caricare le librerie necessarie
+library(survival)
+library(dplyr)
+library(forestplot)
+library(survminer)
+
+# Creare un nuovo dataframe con tutte le variabili di interesse
+df_final1 <- df_final1 %>%
+  mutate(AE = ifelse(AESEVCD %in% c(1, 2), "Low", "High"),
+         TRT = ifelse(TRT %in% "Panitumumab + FOLFOX", "Panitumumab + FOLFOX", "FOLFOX alone"),
+         race = ifelse(RACE %in% "White or Caucasian", "White or Caucasian", "Other"),
+         ECOG = ifelse(B_ECOG %in% c("Fully active", "Symptoms but ambulatory"), "0 or 1", "2"),
+         Primary_Tumor = ifelse(DIAGTYPE %in% "Colon", "Colon", "Rectal"),
+         Number_of_sites = ifelse(B_METANM == 1, "1",
+                                  ifelse(B_METANM == 2, "2",
+                                         ifelse(B_METANM >= 3, ">3", as.character(B_METANM)))),
+         Location_of_site = ifelse(LIVERMET == "Y", "Liver", "Other"),
+         Baseline_LDH1 = ifelse(LBSTRESN < 150 * 1.5, "< 1.5 x ULN",
+                                ifelse(LBSTRESN >= 150 * 1.5, ">= 1.5 x ULN", "other")),
+         Baseline_LDH2 = ifelse(LBSTRESN < 200 * 2, "< 2 x ULN",
+                                ifelse(LBSTRESN >= 200 * 2, ">= 2 x ULN", "other")),
+         Age1 = ifelse(AGE < 65, "<65", ">=65"),
+         Age2 = ifelse(AGE < 75, "<75", ">=75"))
+
+# Modello Cox PH con tutte le variabili
+cox_model_full <- coxph(Surv(PFSDYCR, PFSCR) ~ AE + TRT + BMMTR + ECOG + Primary_Tumor + Number_of_sites + 
+                          Location_of_site + Baseline_LDH1 + Baseline_LDH2 + Age1 + 
+                          Age2 + SEX + race + PRSURG + BMI_category, data = df_final1)
+
+# Sommario del modello
+summary_cox_full <- summary(cox_model_full)
+
+coef(cox_model_full)
+
+# Estrarre i risultati
+HR <- exp(coef(cox_model_full))  # Hazard Ratios
+CI_lower <- exp(confint(cox_model_full)[, 1])  # Limiti inferiori degli intervalli di confidenza
+CI_upper <- exp(confint(cox_model_full)[, 2])  # Limiti superiori degli intervalli di confidenza
+p_values <- summary_cox_full$coefficients[, 5]  # P-values
+
+# Preparazione dei dati per il forest plot
+forest_data <- data.frame(
+  Factors = c("Adverse Events Grade: Low", "Treatment: Panitumumab + FOLFOX", "KRAS: WT", "ECOG: 2 (in bed < 50% of the time)", "Primary Tumor: Rectal", "Number of Sites: 1", "Number of Sites: 2", "Location of Site: Other", "Baseline LDH1: >= 1.5 x ULN", "Baseline LDH2: >= 2 x ULN", "Age: >=65", "Age: >=75", "Sex: Male", "Race: White or Caucasian", "Pre-Surgery", "BMI category: normal weight", "BMI category: overweight/obese"),
+  HR = round(HR, 2),
+  Lower_CI = round(CI_lower, 2),
+  Upper_CI = round(CI_upper, 2),
+  p_value = round(p_values, 3)
+)
+
+# Preparare i testi da mostrare nella colonna di etichette
+labels <- cbind(
+  forest_data$Factors,
+  sprintf("%.2f", forest_data$HR),
+  sprintf("%.2f - %.2f", forest_data$Lower_CI, forest_data$Upper_CI)
+)
+
+# Creare il forest plot
+forestplot(
+  labeltext = labels,
+  mean = forest_data$HR,
+  lower = forest_data$Lower_CI,
+  upper = forest_data$Upper_CI,
+  title = "Hazard Ratio by Factor",
+  xlab = "Hazard Ratio (log scale)",
+  is.summary = rep(FALSE, nrow(forest_data)),
+  xlog = TRUE,
+  xticks = c(0.5, 1, 2),
+  col = forestplot::fpColors(box = "blue", line = "darkblue", summary = "royalblue"),
+  lineheight = unit(1.5, "cm"),  # Aumenta l'altezza delle linee per spazio tra le etichette
+  boxsize = 0.2,  # Riduci la dimensione dei box per una visualizzazione più pulita
+  clip = c(0.5, 2.5),  # Limita l'asse x per una visualizzazione più chiara
+  txt_gp = fpTxtGp(
+    label = gpar(fontsize = 10),  # Aumenta la dimensione del testo per le etichette
+    xlab = gpar(fontsize = 12),  # Aumenta la dimensione del testo per l'asse x
+    title = gpar(fontsize = 14, fontface = "bold")  # Aumenta la dimensione del titolo
+  )
+)
+```
+```{r}
+library(survival)
+library(survminer)
+library(cowplot)
+
+# Fit the Cox PH model
+cox_model <- coxph(Surv(PFSDYCR, PFSCR) ~ AE + TRT + BMMTR + ECOG + Primary_Tumor + Number_of_sites + 
+                          Location_of_site + Baseline_LDH1 + Baseline_LDH2 + Age1 + 
+                          Age2 + SEX + race + PRSURG + BMI_category, data = df_final1)
+
+# Schoenfeld Residuals Test
+cox_zph <- cox.zph(cox_model)
+
+# Print the test results
+print(cox_zph)
+
+# Plot diagnostics
+
+# Schoenfeld Residuals Test
+cox_zph <- cox.zph(cox_model_full)
+
+# Generate diagnostic plots
+ggcoxzph(cox_zph)
+plot_dfbeta <- ggcoxdiagnostics(cox_model_full, type = "dfbeta", linear.predictions = FALSE, ggtheme = theme_bw())
+plot_deviance <- ggcoxdiagnostics(cox_model_full, type = "deviance", linear.predictions = FALSE, ggtheme = theme_bw())
+plot_martingale <- ggcoxdiagnostics(cox_model_full, type = "martingale", linear.predictions = FALSE, ggtheme = theme_bw())
+
+plot_dfbeta
+
+# Combine the plots into a single grid
+combined_plot <- plot_grid(plot_deviance, plot_martingale, labels = "AUTO")
+
+# Display the combined plot
+print(combined_plot)
+```
+
+```{r}
+library(tidyverse)
+# Filtrare solo i dati di screening
+colon_screening <- colon2 %>% filter(VISIT == "Screening")
+# Riorganizzare i dati con pivot_wider
+colon_wide <- colon_screening %>%
+  select(SUBJID, LBTEST, LBSTRESN) %>%
+  pivot_wider(names_from = LBTEST, values_from = LBSTRESN)
+
+# Convertire i dati in numerico
+colon_wide <- colon_wide %>%
+  mutate(across(everything(), ~ as.numeric(as.character(.))))
+
+# Rimuovere le righe con NA
+colon_wide <- colon_wide %>% drop_na()
+
+# Identificare i duplicati
+colon_wide <- colon_wide %>% distinct(SUBJID, .keep_all = TRUE)
+
+# Controllare i dati riorganizzati
+print(colon_wide)
+```
+
+```{r}
+# Unire il dataframe riorganizzato con il dataframe principale
+df_final1 <- merge(df_final1, colon_wide, by = "SUBJID")
+
+# Controllare i dati uniti
+print(head(df_final1))
+```
+
+```{r}
+df_final1$AE <- ifelse(df_final1$AE == "Low", 0, 1)
+
+# Fit the logistic regression model
+logistic_model <- glm(AE ~ `Albumin` + `Alkaline Phosphatase` + `Creatinine` + 
+                      `Lactate Dehydrogenase` + `Hemoglobin` + `Platelets` + 
+                      `White Blood Cells` + `Carcinoembryonic Antigen` + TRT,
+                      family = binomial, data = df_final1)
+
+# Summarize the model
+summary(logistic_model)
+```
