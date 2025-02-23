@@ -16,9 +16,8 @@ The study, named the Panitumumab Randomized Trial in Combination With Chemothera
 
 ## Contents
 
-- **Data Analysis Scripts:** The `stats_analysis.Rmd` file contains R code for data analysis, including survival analysis, descriptive statistics, and graphical representations of the study results.
-- **Data:** The `Dataset` folder contains the Excel file `colon.xlsx`, which includes patient data used in the analysis.
-- **Figures:** Output figures generated from the analysis are saved in the `Figures` folder.
+- **Data Analysis Scripts:** The `Biostat_project.Rmd` file contains R code for data analysis, including survival analysis, descriptive statistics, and graphical representations of the study results.
+- **Data:** The `data` folder contains the Excel file `colon.xlsx`, which includes patient data used in the analysis.
 - **README:** This README file provides an overview of the project and instructions for running the analysis code.
 
 ## How to Use
@@ -27,7 +26,7 @@ To reproduce the analysis:
 
 1. Clone this repository to your local machine.
 2. Install R and the necessary R packages listed in the `stats_analysis.Rmd` file.
-3. Open the `stats_analysis.Rmd` file in RStudio or any other Markdown editor.
+3. Open the `Biostat_project.Rmd` file in RStudio or any other Markdown editor.
 4. Run the code chunks in the document sequentially to reproduce the analysis and generate the results.
 
 For any questions or issues, please contact the authors.
