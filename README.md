@@ -19,7 +19,7 @@ The study, named the Panitumumab Randomized Trial in Combination With Chemothera
 To reproduce the analysis:
 
 1. Clone this repository to your local machine.
-2. Install R and the necessary R packages listed in the `stats_analysis.Rmd` file.
+2. Install R and the necessary R packages listed in the `Biostat_project.Rmd` file.
 3. Open the `Biostat_project.Rmd` file in RStudio or any other Markdown editor.
 4. Run the code chunks in the document sequentially to reproduce the analysis and generate the results.
 
